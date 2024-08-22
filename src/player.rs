@@ -7,6 +7,7 @@ use bevy_rapier3d::prelude::*;
 
 use crate::{
     controller::{CameraConfig, FpsController, FpsControllerInput, LogicalPlayer, RenderPlayer},
+    world::GROUND_Y,
     VIEW_MODEL_RENDER_LAYER,
 };
 
@@ -18,10 +19,10 @@ impl Plugin for PlayerPlugin {
     }
 }
 
-// #[derive(Component)]
-// pub struct Player;
+#[derive(Component)]
+pub struct Player;
 
-const SPAWN_POINT: Vec3 = Vec3::new(0.0, 1.625, 0.0);
+const SPAWN_POINT: Vec3 = Vec3::new(0.0, GROUND_Y + 5., 0.0);
 
 fn spawn_player(
     mut commands: Commands,
@@ -105,6 +106,7 @@ fn spawn_player(
                 ..default()
             },
             RenderPlayer { logical_entity },
+            Player,
         ))
         .with_children(|parent| {
             parent.spawn((

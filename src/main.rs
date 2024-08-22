@@ -34,21 +34,8 @@ pub const DEFAULT_RENDER_LAYER: usize = 0;
 /// The light source belongs to both layers.
 pub const VIEW_MODEL_RENDER_LAYER: usize = 1;
 
-fn print_ball_altitude(mut positions: Query<&mut Transform, With<RigidBody>>) {
-    for mut transform in positions.iter_mut() {
-        // dbg!(transform.rotation.to_axis_angle());
-        transform.rotation = Quat::from_rotation_z(270_f32.to_radians());
-        println!("Ball altitude: {}", transform.translation.y);
-    }
-}
-#[derive(Component)]
-struct Ground;
-
 fn spawn_physics(mut commands: Commands) {
     let (x, z) = (1.0, 1.0);
-    commands
-        .spawn((Ground, Collider::cuboid(100.0, 0.1, 100.0)))
-        .insert(TransformBundle::from(Transform::from_xyz(x, -2.0, z)));
 
     commands
         .spawn(RigidBody::Dynamic)

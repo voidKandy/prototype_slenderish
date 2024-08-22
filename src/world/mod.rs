@@ -1,3 +1,4 @@
+mod chunks;
 mod generation;
 use bevy::{
     color::palettes::css::{RED, WHITE, YELLOW},
@@ -7,9 +8,10 @@ use bevy::{
         render_asset::RenderAssetUsages,
     },
 };
-use generation::{spawn_terrain, spawn_terrain_entities};
+use chunks::{setup_chunk_map, spawn_terrain, spawn_terrain_entities, update_terrain_materials};
 use noise::NoiseFn;
 use noise::{Fbm, Perlin};
+// use tiles::{spawn_terrain, spawn_terrain_entities};
 
 pub struct WorldPlugin;
 
@@ -18,7 +20,9 @@ impl Plugin for WorldPlugin {
         app.add_systems(
             Startup,
             (
+                setup_chunk_map,
                 spawn_terrain,
+                update_terrain_materials,
                 spawn_terrain_entities,
                 spawn_objects,
                 spawn_light,
@@ -28,7 +32,7 @@ impl Plugin for WorldPlugin {
     }
 }
 
-const GROUND_Y: f32 = 0.0;
+pub const GROUND_Y: f32 = 0.0;
 
 fn spawn_light(mut commands: Commands) {
     let light = PointLightBundle {
