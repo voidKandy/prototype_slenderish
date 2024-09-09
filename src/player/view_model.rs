@@ -1,11 +1,20 @@
+use std::sync::LazyLock;
+
 use bevy::{
-    color::palettes::css::WHITE, input::keyboard::KeyboardInput, prelude::*,
-    render::view::RenderLayers, utils::HashSet,
+    color::palettes::{css::WHITE, tailwind::PINK_950},
+    input::keyboard::KeyboardInput,
+    prelude::*,
+    render::view::RenderLayers,
+    utils::HashSet,
 };
 
-use super::equip_item::{
-    player::{EquipItemPlayer, EquipItemPlayerBundle},
-    EquipItemMaterial,
+use super::{
+    equip_item::{
+        player::{EquipItemPlayer, EquipItemPlayerBundle, EQUIP_TRANSFORM},
+        world::{EquipItemWorld, EquipItemWorldBundle},
+        EquipItem, EquipItemMaterial,
+    },
+    world::PlayerInWorld,
 };
 pub const VIEW_MODEL_RENDER_LAYER: usize = 1;
 
@@ -72,7 +81,7 @@ impl PlayerViewModel {
         }
     }
 
-    pub fn cycle_equipment_next(&mut self) {
+    fn cycle_equipment_next(&mut self) {
         if let Some(next) = self.other_items.iter().next() {
             let taken = self
                 .other_items
@@ -85,6 +94,24 @@ impl PlayerViewModel {
             self.currently_equipped = Some(taken);
         }
     }
+
+    fn drop_equipment(
+        &mut self,
+        commands: &mut Commands,
+        meshes: &mut ResMut<Assets<Mesh>>,
+        materials: &mut ResMut<Assets<EquipItemMaterial>>,
+        player_transform: &Transform,
+    ) {
+        if let Some(item) = self.currently_equipped.take() {
+            let item = Into::<EquipItem>::into(item).into();
+            let mut transform = player_transform.clone();
+            transform.translation += player_transform.forward() * 2.0;
+
+            let bundle = EquipItemWorldBundle::from_equip_item(item, transform, meshes, materials);
+            commands.spawn(bundle);
+            self.cycle_equipment_next();
+        }
+    }
 }
 
 pub fn update_player_equipment(
@@ -93,6 +120,7 @@ pub fn update_player_equipment(
     mut materials: ResMut<Assets<EquipItemMaterial>>,
 
     mut player_vm_q: Query<(Entity, &mut PlayerViewModel), With<PlayerViewModel>>,
+    player_trans_q: Query<&Transform, With<PlayerInWorld>>,
     equip_item_q: Query<(Entity, &EquipItemPlayer), With<EquipItemPlayer>>,
     keys: Res<ButtonInput<KeyCode>>,
 ) {
@@ -101,18 +129,30 @@ pub fn update_player_equipment(
     if keys.just_pressed(KeyCode::KeyN) {
         player_vm.cycle_equipment_next();
     }
+    let trans = player_trans_q.single();
+    if keys.just_pressed(KeyCode::KeyQ) {
+        player_vm.drop_equipment(&mut commands, &mut meshes, &mut materials, &trans);
+    }
 
-    if let Some(item) = player_vm.currently_equipped {
-        for (equip_item_entity, equip_item) in &equip_item_q {
-            if *equip_item != item {
+    match player_vm.currently_equipped {
+        Some(item) => {
+            for (equip_item_entity, equip_item) in &equip_item_q {
+                if *equip_item != item {
+                    commands.entity(equip_item_entity).despawn();
+                }
+            }
+
+            let player_item =
+                EquipItemPlayerBundle::from_equip_item(item.into(), &mut meshes, &mut materials);
+            commands.entity(player_vm_entity).with_children(|p| {
+                p.spawn(player_item);
+            });
+        }
+        None => {
+            for (equip_item_entity, _) in &equip_item_q {
                 commands.entity(equip_item_entity).despawn();
             }
         }
-        let player_item =
-            EquipItemPlayerBundle::from_equip_item(item.into(), &mut meshes, &mut materials);
-        commands.entity(player_vm_entity).with_children(|p| {
-            p.spawn(player_item);
-        });
     }
 }
 
