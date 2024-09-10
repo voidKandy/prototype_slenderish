@@ -25,7 +25,16 @@ pub enum WorldSphereState {
 #[derive(Component, Debug, Clone)]
 pub struct GrenadeTimer(Timer);
 
+#[derive(Component, Debug, Clone)]
+pub struct EffectTimer(Timer);
+
 impl From<Timer> for GrenadeTimer {
+    fn from(value: Timer) -> Self {
+        Self(value)
+    }
+}
+
+impl From<Timer> for EffectTimer {
     fn from(value: Timer) -> Self {
         Self(value)
     }
@@ -122,7 +131,10 @@ pub fn tick_sphere(
                     }
 
                     if let Some(bundle) = explosion_bundle.take() {
-                        commands.spawn(bundle);
+                        commands.spawn((
+                            bundle,
+                            EffectTimer::from(Timer::new(Duration::from_secs(1), TimerMode::Once)),
+                        ));
                     }
 
                     commands.entity(world_item_entity).despawn();
@@ -132,6 +144,20 @@ pub fn tick_sphere(
                     ev_equip_item.send(EquipItemEvent::PickedUp(item));
                 }
             }
+        }
+    }
+}
+
+pub fn tick_effect(
+    mut commands: Commands,
+    time: Res<Time>,
+    mut q: Query<(Entity, &mut EffectTimer), With<EffectTimer>>,
+) {
+    for (entity, mut timer) in q.iter_mut() {
+        timer.0.tick(time.delta());
+
+        if timer.0.finished() {
+            commands.entity(entity).despawn();
         }
     }
 }

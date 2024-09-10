@@ -22,6 +22,7 @@ impl Plugin for EquipItemPlugin {
                     player_raycast,
                     update_equip_item_state,
                     world::sphere::tick_sphere,
+                    world::sphere::tick_effect,
                 ),
             );
     }
