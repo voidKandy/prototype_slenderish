@@ -42,22 +42,6 @@ impl From<Timer> for EffectTimer {
 
 pub const SECONDS_TO_EXPLODE: u64 = 2;
 
-fn angle_between_points(p1: Point3<f32>, p2: Point3<f32>) -> f32 {
-    // Compute the dot product
-    let dot_product = p1.x * p2.x + p1.y * p2.y + p1.z * p2.z;
-    // Compute the magnitudes
-    let mag1 = (p1.x * p1.x + p1.y * p1.y + p1.z * p1.z).sqrt();
-    let mag2 = (p2.x * p2.x + p2.y * p2.y + p2.z * p2.z).sqrt();
-    // Compute the cosine of the angle
-    let cos_theta = dot_product / (mag1 * mag2);
-    // Clamp cosine value to the range [-1, 1] to avoid out-of-range errors in arccos
-    let cos_theta = cos_theta.max(-1.0).min(1.0);
-    // Compute the angle in radians
-    let theta = cos_theta.acos();
-    // Convert to degrees
-    theta.to_degrees()
-}
-
 pub fn tick_sphere(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,

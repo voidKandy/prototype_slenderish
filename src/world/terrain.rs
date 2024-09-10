@@ -4,7 +4,10 @@ use bevy::{color::palettes::css::GREEN, prelude::*};
 use bevy_rapier3d::prelude::*;
 use noise::{Fbm, Perlin};
 
-use crate::{rtin::build_terrain_from_noise, world::GROUND_Y};
+use crate::{
+    rtin::{build_terrain_from_sampler, noise::NoiseSampler},
+    world::GROUND_Y,
+};
 
 use super::chunks::{ChunkMap, ChunkType};
 
@@ -70,8 +73,10 @@ pub fn spawn_terrain(
     let err_threshold = 0.01;
     let height_multiplier = 50.;
 
+    let sampler = NoiseSampler::single_layer(noise_func);
+
     assert!(is_power_of_2(size as u32));
-    let terrain = build_terrain_from_noise(&mut noise_func, height_multiplier, size, err_threshold);
+    let terrain = build_terrain_from_sampler(&sampler, height_multiplier, size, err_threshold);
     let mesh = terrain.into_mesh(false, size);
 
     let bundle = TerrainBundle::new(mesh, &mut meshes, &mut materials);

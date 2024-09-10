@@ -1,4 +1,5 @@
 pub mod binary_node;
+pub mod noise;
 use std::{collections::HashMap, u32};
 
 use binary_node::*;
@@ -17,12 +18,15 @@ use bevy::{
 };
 use bevy_rapier3d::prelude::shape_views::TriangleView;
 use bevy_tnua::math::Vector2;
-use noise::{Fbm, NoiseFn, Perlin};
 
 #[derive(Debug)]
 pub struct TerrainMeshData {
     pub vertices: Vec<Vec3>,
     pub indices: Vec<u32>,
+}
+
+pub trait PlaneSampler {
+    fn get(&self, x: f32, y: f32) -> f32;
 }
 
 impl TerrainMeshData {
@@ -89,14 +93,14 @@ impl TerrainMeshData {
     }
 }
 
-pub fn build_terrain_from_noise(
-    noise: &mut Fbm<Perlin>,
+pub fn build_terrain_from_sampler(
+    sampler: &impl PlaneSampler,
     height_multiplier: f32,
     size: f32,
     error_threshold: f32,
 ) -> TerrainMeshData {
     let grid_size = size + 1.;
-    let errors = get_errors_vec(noise, grid_size);
+    let errors = get_errors_vec(sampler, grid_size);
     // warn!("got errors vec: \n{errors:?}");
     let avg = errors.iter().fold(0., |acc, e| acc + e) / errors.len() as f32;
     warn!("avg error: {}", avg);
@@ -126,7 +130,7 @@ pub fn build_terrain_from_noise(
                     vertices_array_position.insert(vertex_id, new_vertex_index);
 
                     let vertex_height =
-                        sample_noise_corner_mean(noise, &size, **new_vertex) * height_multiplier;
+                        sample_corner_mean(sampler, &size, **new_vertex) * height_multiplier;
 
                     let new_vertex_3d =
                         Vec3::new(new_vertex[0] as f32, vertex_height, new_vertex[1] as f32);
@@ -148,7 +152,7 @@ fn log_2(x: u32) -> u32 {
     num_bits::<u32>() as u32 - x.leading_zeros() - 1
 }
 
-fn get_errors_vec(noise: &mut Fbm<Perlin>, grid_size: f32) -> Vec<f32> {
+fn get_errors_vec(sampler: &impl PlaneSampler, grid_size: f32) -> Vec<f32> {
     // let grid_grid_size = size + 1.;
     let number_of_triangles = grid_size as u32 * grid_size as u32 * 2 - 2;
     let number_of_levels = log_2(grid_size as u32) * 2;
@@ -165,19 +169,14 @@ fn get_errors_vec(noise: &mut Fbm<Perlin>, grid_size: f32) -> Vec<f32> {
         let midpoint = node.midpoint_pixel_coords(grid_size);
 
         let triangle_coords = node.triangle_coords(grid_size);
-        let h0 = sample_noise_corner_mean(noise, &grid_size, triangle_coords.vertices[0]);
-        let h1 = sample_noise_corner_mean(noise, &grid_size, triangle_coords.vertices[1]);
+        let h0 = sample_corner_mean(sampler, &grid_size, triangle_coords.vertices[0]);
+        let h1 = sample_corner_mean(sampler, &grid_size, triangle_coords.vertices[1]);
         let midpoint_interpolated = (h1 + h0) / 2.0;
-        let midpoint_height = sample_noise_corner_mean(noise, &grid_size, midpoint);
+        let midpoint_height = sample_corner_mean(sampler, &grid_size, midpoint);
 
         let this_triangle_error = (midpoint_interpolated - midpoint_height).abs();
 
         let this_triangle_mid_point_error_vec_index = node.errors_vec_index(grid_size);
-
-        // warn!(
-        //     "Processing triangle {:?} of coords {:?} with error index {}",
-        //     node, triangle_coords, this_triangle_mid_point_error_vec_index
-        // );
 
         if idx >= last_level_index_start {
             errors_vec[this_triangle_mid_point_error_vec_index] = this_triangle_error;
@@ -201,7 +200,7 @@ fn get_errors_vec(noise: &mut Fbm<Perlin>, grid_size: f32) -> Vec<f32> {
     errors_vec
 }
 
-pub fn sample_noise_corner_mean(noise: &mut Fbm<Perlin>, size: &f32, corner_u32: Vector2) -> f32 {
+pub fn sample_corner_mean(sampler: &impl PlaneSampler, size: &f32, corner_u32: Vector2) -> f32 {
     let mut new_corner = corner_u32;
 
     if new_corner[0] >= *size {
@@ -212,21 +211,10 @@ pub fn sample_noise_corner_mean(noise: &mut Fbm<Perlin>, size: &f32, corner_u32:
         new_corner[1] = size - 1.;
     }
 
-    // warn!(
-    //     "sampling noise at x: {}, y: {}",
-    //     new_corner[0], new_corner[1]
-    // );
-
-    noise.get([new_corner[0] as f64, new_corner[1] as f64]) as f32
-    // as f32 / std::u16::MAX as f32
+    sampler.get(new_corner[0], new_corner[1])
 }
 
-fn select_nodes(
-    // noise: &mut Fbm<Perlin>,
-    size: f32,
-    errors_vec: &Vec<f32>,
-    error_threshold: f32,
-) -> Vec<BinaryNode> {
+fn select_nodes(size: f32, errors_vec: &Vec<f32>, error_threshold: f32) -> Vec<BinaryNode> {
     let mut nodes = Vec::<BinaryNode>::new();
 
     select_nodes_for_heightmap(size, errors_vec, &mut nodes, 0, error_threshold);
@@ -297,16 +285,16 @@ mod tests {
     use bevy::scene::ron::error;
     use noise::{Fbm, Perlin};
 
-    use crate::rtin::BinaryNode;
+    use crate::rtin::{noise::NoiseSampler, BinaryNode, PlaneSampler};
 
-    use super::{build_terrain_from_noise, get_errors_vec, select_nodes};
+    use super::{get_errors_vec, select_nodes};
 
     #[test]
     fn errors_vec_correct() {
-        let mut noise = Fbm::<Perlin>::new(69);
-
+        let noise = Fbm::<Perlin>::new(69);
         let size = 4.;
-        let errors = get_errors_vec(&mut noise, size);
+        let sampler = NoiseSampler::single_layer(noise);
+        let errors = get_errors_vec(&sampler, size);
         assert_eq!(16, errors.len());
         println!("errors: {:?}", errors);
     }
