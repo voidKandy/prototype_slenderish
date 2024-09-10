@@ -1,4 +1,5 @@
 mod controller;
+mod equip_item;
 mod player;
 mod rtin;
 mod world;
@@ -6,7 +7,8 @@ use bevy::prelude::*;
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bevy_rapier3d::prelude::*;
 use controller::FpsControllerPlugin;
-// use items::EquipItemPlugin;
+use equip_item::EquipItemPlugin;
+// use items::PluginEquipItem;
 use player::PlayerPlugin;
 use world::WorldPlugin;
 
@@ -19,8 +21,9 @@ fn main() {
         // .add_plugins(DefaultPickingPlugins)
         .add_plugins((
             WorldPlugin,
+            EquipItemPlugin,
             PlayerPlugin,
-            // EquipItemPlugin,
+            // PluginEquipItem,
             // CameraPlugin,
             WorldInspectorPlugin::new(),
         ))

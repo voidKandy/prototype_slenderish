@@ -1,22 +1,23 @@
 use super::{EquipItem, EquipItemMaterial};
-use bevy::{color::palettes::css::PURPLE, pbr::ExtendedMaterial, prelude::*};
-use bevy_rapier3d::prelude::*;
+use crate::player::view_model::VIEW_MODEL_RENDER_LAYER;
+use bevy::{
+    color::palettes::css::PURPLE, pbr::ExtendedMaterial, prelude::*, render::view::RenderLayers,
+};
 use std::sync::LazyLock;
 
-pub const ITEM_COLLISION_GROUPS: LazyLock<CollisionGroups> = LazyLock::new(|| {
-    CollisionGroups::new(
-        Group::GROUP_3,
-        Group::GROUP_2 | Group::GROUP_1 | Group::GROUP_3,
-    )
+pub const EQUIP_TRANSFORM: LazyLock<Transform> = LazyLock::new(|| {
+    let mut equip_transform = Transform::from_xyz(0.18, -0.075, -0.25);
+    equip_transform.rotate(Quat::from_xyzw(0.1, 0.2, -0.1, 0.));
+    equip_transform
 });
 
-#[derive(Component, Debug, Copy, Clone)]
-pub enum EquipItemWorld {
+#[derive(Component, Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum PlayerEquipItem {
     Sphere,
     Cube,
 }
 
-impl From<EquipItem> for EquipItemWorld {
+impl From<EquipItem> for PlayerEquipItem {
     fn from(value: EquipItem) -> Self {
         match value {
             EquipItem::Cube => Self::Cube,
@@ -25,7 +26,7 @@ impl From<EquipItem> for EquipItemWorld {
     }
 }
 
-impl Into<EquipItem> for EquipItemWorld {
+impl Into<EquipItem> for PlayerEquipItem {
     fn into(self) -> EquipItem {
         match self {
             Self::Cube => EquipItem::Cube,
@@ -35,45 +36,36 @@ impl Into<EquipItem> for EquipItemWorld {
 }
 
 #[derive(Bundle)]
-pub struct EquipItemWorldBundle {
-    item: EquipItemWorld,
-    collider: Collider,
-    collision_groups: CollisionGroups,
-    restitution: Restitution,
-    friction: Friction,
-    rigid_body: RigidBody,
+pub struct PlayerEquipItemBundle {
+    item: PlayerEquipItem,
     transform: TransformBundle,
     visibility: VisibilityBundle,
+    render_layers: RenderLayers,
     mesh: Handle<Mesh>,
     material: Handle<EquipItemMaterial>,
 }
 
-impl EquipItemWorldBundle {
+pub fn single_text_sections(str: &str) -> Vec<TextSection> {
+    vec![TextSection {
+        value: str.to_owned(),
+        style: TextStyle {
+            font_size: 12.0,
+            ..Default::default()
+        },
+    }]
+}
+
+impl PlayerEquipItemBundle {
     pub fn from_equip_item(
         item: EquipItem,
-        transform: Transform,
         meshes: &mut ResMut<Assets<Mesh>>,
         materials: &mut ResMut<Assets<EquipItemMaterial>>,
     ) -> Self {
-        let size = 0.8;
+        let t = EQUIP_TRANSFORM;
+        let transform = LazyLock::force(&t);
+        let size = 0.1;
 
-        let (mesh, material, collider) = match item {
-            EquipItem::Cube => {
-                let mesh: Mesh = Cuboid::new(size, size, size).into();
-                let material = ExtendedMaterial {
-                    base: StandardMaterial {
-                        base_color: PURPLE.into(),
-                        opaque_render_method: bevy::pbr::OpaqueRendererMethod::Auto,
-                        ..Default::default()
-                    },
-                    extension: crate::player::PlayerViewModelExtension { quantize_steps: 3 },
-                };
-
-                let collider_size = size / 2.;
-
-                let collider = Collider::cuboid(collider_size, collider_size, collider_size);
-                (mesh, material, collider)
-            }
+        let (mesh, material) = match item {
             EquipItem::Sphere => {
                 let mesh: Mesh = Sphere::new(size).into();
                 let material = ExtendedMaterial {
@@ -84,26 +76,29 @@ impl EquipItemWorldBundle {
                     },
                     extension: crate::player::PlayerViewModelExtension { quantize_steps: 3 },
                 };
-
-                let collider = Collider::ball(size);
-                (mesh, material, collider)
+                (mesh, material)
+            }
+            EquipItem::Cube => {
+                let mesh: Mesh = Cuboid::new(size, size, size).into();
+                let material = ExtendedMaterial {
+                    base: StandardMaterial {
+                        base_color: PURPLE.into(),
+                        opaque_render_method: bevy::pbr::OpaqueRendererMethod::Auto,
+                        ..Default::default()
+                    },
+                    extension: crate::player::PlayerViewModelExtension { quantize_steps: 3 },
+                };
+                (mesh, material)
             }
         };
 
-        let friction = Friction::default();
-        let restitution = Restitution::default();
-
         Self {
             item: item.into(),
-            rigid_body: RigidBody::Dynamic,
-            collision_groups: LazyLock::force(&ITEM_COLLISION_GROUPS).to_owned(),
-            transform: TransformBundle::from_transform(transform),
+            transform: TransformBundle::from_transform(transform.to_owned()),
             visibility: VisibilityBundle::default(),
+            render_layers: RenderLayers::layer(VIEW_MODEL_RENDER_LAYER),
             mesh: meshes.add(mesh),
             material: materials.add(material),
-            collider,
-            friction,
-            restitution,
         }
     }
 }
