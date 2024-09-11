@@ -1,5 +1,6 @@
 mod controller;
 mod equip_item;
+mod npc;
 mod player;
 mod rtin;
 mod world;
@@ -23,6 +24,7 @@ fn main() {
             WorldPlugin,
             EquipItemPlugin,
             PlayerPlugin,
+            npc::NpcPlugin,
             // PluginEquipItem,
             // CameraPlugin,
             WorldInspectorPlugin::new(),

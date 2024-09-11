@@ -6,7 +6,7 @@ use bevy::{
 };
 use bevy_rapier3d::{
     na::{distance_squared, ComplexField, OPoint, Point3},
-    prelude::{Collider, ExternalForce, ExternalImpulse, RigidBody},
+    prelude::{Collider, CollisionEvent, ExternalForce, ExternalImpulse, RigidBody},
 };
 
 use crate::equip_item::{inventory::Inventory, EquipItem, EquipItemEvent, EquipItemMaterial};
@@ -24,9 +24,11 @@ pub enum WorldSphereState {
 
 #[derive(Component, Debug, Clone)]
 pub struct GrenadeTimer(Timer);
+pub const MS_TO_EXPLODE: u64 = 800;
 
 #[derive(Component, Debug, Clone)]
 pub struct EffectTimer(Timer);
+pub const MS_TO_CLEAR_EXPLOSION: u64 = 500;
 
 impl From<Timer> for GrenadeTimer {
     fn from(value: Timer) -> Self {
@@ -39,8 +41,6 @@ impl From<Timer> for EffectTimer {
         Self(value)
     }
 }
-
-pub const SECONDS_TO_EXPLODE: u64 = 2;
 
 pub fn tick_sphere(
     mut commands: Commands,
@@ -117,7 +117,10 @@ pub fn tick_sphere(
                     if let Some(bundle) = explosion_bundle.take() {
                         commands.spawn((
                             bundle,
-                            EffectTimer::from(Timer::new(Duration::from_secs(1), TimerMode::Once)),
+                            EffectTimer::from(Timer::new(
+                                Duration::from_millis(MS_TO_CLEAR_EXPLOSION),
+                                TimerMode::Once,
+                            )),
                         ));
                     }
 

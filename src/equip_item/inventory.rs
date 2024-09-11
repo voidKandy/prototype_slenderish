@@ -1,6 +1,6 @@
 use std::{sync::LazyLock, time::Duration};
 
-use bevy::{color::palettes::css::WHITE, prelude::*, utils::HashSet};
+use bevy::{color::palettes::css::WHITE, math::VectorSpace, prelude::*, utils::HashSet};
 use bevy_rapier3d::prelude::*;
 
 use crate::player::{
@@ -11,7 +11,7 @@ use crate::player::{
 use super::{
     player::{single_text_sections, PlayerEquipItem, PlayerEquipItemBundle},
     world::{
-        sphere::{GrenadeTimer, WorldSphereState, SECONDS_TO_EXPLODE},
+        sphere::{GrenadeTimer, WorldSphereState, MS_TO_EXPLODE},
         WorldEquipItem, WorldEquipItemBundle, ITEM_COLLISION_GROUPS,
     },
     EquipItem, EquipItemEvent, EquipItemMaterial,
@@ -58,7 +58,7 @@ impl Inventory {
         if let Some(item) = self.currently_equipped.take() {
             let item = Into::<EquipItem>::into(item).into();
             let mut transform = player_transform.clone();
-            transform.translation += player_transform.forward() * 2.0;
+            transform.translation += *player_transform.forward();
             let mut bundle =
                 WorldEquipItemBundle::from_equip_item(item, transform, meshes, materials);
 
@@ -71,12 +71,15 @@ impl Inventory {
 
                 bundle.item = WorldEquipItem::Sphere(WorldSphereState::Engaged {
                     timer: GrenadeTimer::from(Timer::new(
-                        Duration::from_secs(SECONDS_TO_EXPLODE),
+                        Duration::from_millis(MS_TO_EXPLODE),
                         TimerMode::Once,
                     )),
                 });
             }
-            commands.spawn(bundle);
+            commands.spawn(bundle).insert(ExternalImpulse {
+                impulse: player_transform.forward() * 2.0,
+                torque_impulse: Vec3::ZERO,
+            });
             self.cycle_equipment_next();
         }
     }
@@ -105,7 +108,7 @@ pub(super) fn update_player_equipment(
     if keys.just_pressed(KeyCode::KeyQ) {
         if let Some(i) = inventory.currently_equipped {
             let mut transform = player_trans_q.single().clone();
-            transform.translation += transform.forward() * 2.0;
+            // transform.translation += transform.forward() * 2.0;
             inventory.drop_equipment(&mut commands, &mut meshes, &mut materials, &transform);
             ev_equip_item.send(EquipItemEvent::Dropped(i.into()));
         }

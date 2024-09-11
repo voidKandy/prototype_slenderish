@@ -61,7 +61,7 @@ fn setup(
 
     let cube_world = WorldEquipItemBundle::from_equip_item(
         EquipItem::Cube,
-        Transform::from_xyz(8.0, 8.0, 8.0),
+        Transform::from_xyz(18.0, 18.0, 18.0),
         &mut meshes,
         &mut materials,
     );

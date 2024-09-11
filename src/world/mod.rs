@@ -1,7 +1,9 @@
+mod atmosphere;
 mod chunks;
 pub mod terrain;
 use std::{collections::HashMap, f32::consts::PI};
 
+use atmosphere::SkyMaterial;
 use bevy::{
     color::palettes::css::{RED, WHITE, YELLOW},
     math::NormedVectorSpace,
@@ -22,18 +24,19 @@ pub struct WorldPlugin;
 
 impl Plugin for WorldPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(
-            Startup,
-            (
-                setup_chunk_map,
-                spawn_skymap,
-                spawn_terrain,
-                spawn_terrain_entities,
-                spawn_objects,
-                spawn_light,
-            )
-                .chain(),
-        );
+        app.add_plugins(MaterialPlugin::<SkyMaterial>::default())
+            .add_systems(
+                Startup,
+                (
+                    setup_chunk_map,
+                    atmosphere::setup_atmosphere,
+                    spawn_terrain,
+                    spawn_terrain_entities,
+                    spawn_objects,
+                    spawn_light,
+                )
+                    .chain(),
+            );
     }
 }
 
@@ -76,26 +79,6 @@ fn spawn_objects(
 
     commands.spawn((Name::new("red cube"), red_cube));
     commands.spawn((Name::new("blue cube"), blue_cube));
-}
-
-pub fn spawn_skymap(
-    mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
-) {
-    let sphere = PbrBundle {
-        mesh: meshes.add(icosahedron(0).into_mesh(true, 5.)),
-        material: materials.add(StandardMaterial {
-            base_color: Color::WHITE,
-            metallic: 1.0,
-            perceptual_roughness: 0.,
-            reflectance: 1.,
-            ..Default::default()
-        }),
-        transform: Transform::from_xyz(10., 2., 0.),
-        ..Default::default()
-    };
-    commands.spawn(sphere);
 }
 
 fn project_to_unit_sphere(vertices: &mut Vec<Vec3>) {

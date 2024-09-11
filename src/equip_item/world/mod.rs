@@ -39,16 +39,16 @@ impl Into<EquipItem> for WorldEquipItem {
 #[derive(Bundle)]
 pub struct WorldEquipItemBundle {
     pub(super) item: WorldEquipItem,
+    pub(super) mesh: Handle<Mesh>,
+    pub(super) material: Handle<EquipItemMaterial>,
     collider: Collider,
     collision_groups: CollisionGroups,
     restitution: Restitution,
     friction: Friction,
     rigid_body: RigidBody,
-    mass_properties: AdditionalMassProperties,
     transform: TransformBundle,
     visibility: VisibilityBundle,
-    pub(super) mesh: Handle<Mesh>,
-    pub(super) material: Handle<EquipItemMaterial>,
+    ccd: Ccd,
 }
 
 impl WorldEquipItemBundle {
@@ -58,13 +58,9 @@ impl WorldEquipItemBundle {
         meshes: &mut ResMut<Assets<Mesh>>,
         materials: &mut ResMut<Assets<EquipItemMaterial>>,
     ) -> Self {
-        let mf = |size| MassProperties {
-            mass: size * 10.,
-            ..Default::default()
-        };
-        let (mesh, material, collider, mass) = match item {
+        let (mesh, material, collider, restitution, ccd) = match item {
             EquipItem::Cube => {
-                let size = 5.;
+                let size = 1.;
                 let mesh: Mesh = Cuboid::new(size, size, size).into();
                 let material = ExtendedMaterial {
                     base: StandardMaterial {
@@ -78,7 +74,13 @@ impl WorldEquipItemBundle {
                 let collider_size = size / 2.;
 
                 let collider = Collider::cuboid(collider_size, collider_size, collider_size);
-                (mesh, material, collider, mf(size))
+                (
+                    mesh,
+                    material,
+                    collider,
+                    Restitution::default(),
+                    Ccd::disabled(),
+                )
             }
             EquipItem::Sphere => {
                 let size = 0.2;
@@ -93,18 +95,22 @@ impl WorldEquipItemBundle {
                 };
 
                 let collider = Collider::ball(size);
-                (mesh, material, collider, mf(size))
+                let restitution = Restitution {
+                    coefficient: 0.2,
+                    combine_rule: CoefficientCombineRule::Min,
+                };
+
+                (mesh, material, collider, restitution, Ccd::enabled())
             }
         };
 
         let friction = Friction::default();
-        let restitution = Restitution::default();
 
         Self {
             item: item.into(),
             rigid_body: RigidBody::Dynamic,
-            mass_properties: AdditionalMassProperties::MassProperties(mass),
             collision_groups: LazyLock::force(&ITEM_COLLISION_GROUPS).to_owned(),
+            ccd,
             transform: TransformBundle::from_transform(transform),
             visibility: VisibilityBundle::default(),
             mesh: meshes.add(mesh),
