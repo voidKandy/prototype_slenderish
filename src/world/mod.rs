@@ -1,21 +1,28 @@
 mod atmosphere;
 mod chunks;
+pub(super) mod heap;
+pub mod wave;
+
+pub mod chunks2;
 pub mod terrain;
-use std::{collections::HashMap, f32::consts::PI};
+pub use heap::Heapable;
+use std::sync::LazyLock;
 
 use atmosphere::SkyMaterial;
 use bevy::{
     color::palettes::css::{RED, WHITE, YELLOW},
     math::NormedVectorSpace,
     prelude::{Cuboid, *},
-    reflect::List,
+    reflect::{Array, List},
     render::{
         mesh::{Indices, PrimitiveTopology, SphereKind, SphereMeshBuilder},
         render_asset::RenderAssetUsages,
     },
 };
 use chunks::setup_chunk_map;
+use chunks2::{MarchingTile, MarchingTileBundle, MarchingTileType, TILE_ID_MARCHING_TILES_MAP};
 use terrain::{spawn_terrain, spawn_terrain_entities};
+use wave::{TileCell, TileCellGrid, ALL_TILE_IDS};
 
 use crate::rtin::TerrainMeshData;
 // use tiles::{spawn_terrain, spawn_terrain_entities};
@@ -63,22 +70,29 @@ fn spawn_objects(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
-    let blue_cube = PbrBundle {
-        mesh: meshes.add(Mesh::from(Cuboid::new(0.5, 0.5, 0.5))),
-        material: materials.add(Color::srgb(0., 0., 0.5)),
-        transform: Transform::from_xyz(0., -1.5, 0.),
-        ..Default::default()
-    };
+    let tiles = TileCellGrid::new(3).collapse_all_into_vec();
+    let t = TILE_ID_MARCHING_TILES_MAP;
+    let map = LazyLock::force(&t);
 
-    let red_cube = PbrBundle {
-        mesh: meshes.add(Mesh::from(Cuboid::new(8.0, 8.0, 8.0))),
-        material: materials.add(Color::srgb(0.5, 0., 0.)),
-        transform: Transform::from_xyz(-4., GROUND_Y, 8.),
-        ..Default::default()
-    };
+    for (i, tile) in tiles.iter().enumerate() {
+        let marching = map.get(&tile.id().unwrap()).unwrap();
+        let origin = Transform::from_xyz(-100., GROUND_Y, -30.);
+        let (mesh, transform) =
+            MarchingTileBundle::marching_tile_mesh(&origin, marching, tile.x, tile.y);
 
-    commands.spawn((Name::new("red cube"), red_cube));
-    commands.spawn((Name::new("blue cube"), blue_cube));
+        let bundle = PbrBundle {
+            mesh: meshes.add(mesh),
+            material: materials.add(Color::srgb(0., 0., 0.5)),
+            transform,
+            ..Default::default()
+        };
+        commands.spawn((Name::new(format!("tile {i}")), bundle));
+    }
+
+    // commands.spawn((Name::new("wall"), wall));
+    // commands.spawn((Name::new("floor"), floor));
+    // commands.spawn((Name::new("corner"), corner));
+    // commands.spawn((Name::new("stairs"), stairs));
 }
 
 fn project_to_unit_sphere(vertices: &mut Vec<Vec3>) {

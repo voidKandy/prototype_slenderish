@@ -59,23 +59,23 @@ pub fn setup_atmosphere(
 
     let mut com = commands.spawn((Name::new("sky"), NotShadowCaster));
 
-    let planes = [
-        (Vec3::new(0.0, distance, 0.0), Vec3::Y), // Plane facing -Y
-        (Vec3::new(0.0, distance * 100., 0.0), -Vec3::Y), // Plane facing -Y
-    ];
-
-    // Loop through the positions and spawn planes
-    for (position, normal) in planes.iter() {
-        com.with_children(|p| {
-            p.spawn(MaterialMeshBundle {
-                mesh: meshes.add(Mesh::from(Plane3d {
-                    normal: Dir3::new(*normal).unwrap(),
-                    half_size,
-                })),
-                material: materials.add(SkyMaterial {}),
-                transform: Transform::from_translation(*position),
-                ..default()
-            });
-        });
-    }
+    // let planes = [
+    //     (Vec3::new(0.0, distance, 0.0), Vec3::Y), // Plane facing -Y
+    //     (Vec3::new(0.0, distance * 100., 0.0), -Vec3::Y), // Plane facing -Y
+    // ];
+    //
+    // // Loop through the positions and spawn planes
+    // for (position, normal) in planes.iter() {
+    //     com.with_children(|p| {
+    //         p.spawn(MaterialMeshBundle {
+    //             mesh: meshes.add(Mesh::from(Plane3d {
+    //                 normal: Dir3::new(*normal).unwrap(),
+    //                 half_size,
+    //             })),
+    //             material: materials.add(SkyMaterial {}),
+    //             transform: Transform::from_translation(*position),
+    //             ..default()
+    //         });
+    //     });
+    // }
 }

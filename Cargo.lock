@@ -2064,19 +2064,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "game_3d"
-version = "0.1.0"
-dependencies = [
- "bevy",
- "bevy-inspector-egui",
- "bevy-tnua",
- "bevy-tnua-rapier3d",
- "bevy_rapier3d",
- "noise",
- "rand",
-]
-
-[[package]]
 name = "gethostname"
 version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3470,6 +3457,19 @@ name = "profiling"
 version = "1.0.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "43d84d1d7a6ac92673717f9f6d1518374ef257669c24ebc5ac25d5033828be58"
+
+[[package]]
+name = "prototype_slenderish"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+ "bevy-inspector-egui",
+ "bevy-tnua",
+ "bevy-tnua-rapier3d",
+ "bevy_rapier3d",
+ "noise",
+ "rand",
+]
 
 [[package]]
 name = "quick-xml"

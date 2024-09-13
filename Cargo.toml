@@ -1,7 +1,10 @@
 [package]
-name = "game_3d"
+name = "prototype_slenderish"
 version = "0.1.0"
 edition = "2021"
+
+[lib]
+path="src/lib.rs"
 
 [dependencies]
 bevy = "0.14.1"
@@ -11,6 +14,11 @@ bevy-tnua-rapier3d = "0.7.0"
 bevy_rapier3d = {version = "0.27.0", features = [ "simd-stable", "debug-render-3d" ] }
 noise = "0.9.0"
 rand = "0.8.5"
+
+[[example]]
+name = "marching_tiles"
+path = "examples/marching_tiles.rs"
+
 
 [profile.dev.package.bevy_rapier3d]
 opt-level = 3

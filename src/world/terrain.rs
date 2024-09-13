@@ -1,8 +1,7 @@
-use std::sync::LazyLock;
-
 use bevy::{color::palettes::css::GREEN, prelude::*};
 use bevy_rapier3d::prelude::*;
 use noise::{Fbm, Perlin};
+use std::sync::LazyLock;
 
 use crate::{
     rtin::{build_terrain_from_sampler, noise::NoiseSampler},
@@ -12,26 +11,26 @@ use crate::{
 use super::chunks::{ChunkMap, ChunkType};
 
 #[derive(Component)]
-struct Terrain;
+pub struct Terrain;
 
-const WORLD_COLLISION_GROUPS: LazyLock<CollisionGroups> =
+pub const WORLD_COLLISION_GROUPS: LazyLock<CollisionGroups> =
     LazyLock::new(|| CollisionGroups::new(Group::GROUP_1, Group::GROUP_2 | Group::GROUP_3));
 
 #[derive(Bundle)]
 pub struct TerrainBundle {
-    terrain: Terrain,
-    name: Name,
-    collider: Collider,
-    rigid_body: RigidBody,
-    collision_groups: CollisionGroups,
-    transform: TransformBundle,
-    visibility: VisibilityBundle,
-    mesh: Handle<Mesh>,
-    material: Handle<StandardMaterial>,
+    pub(super) terrain: Terrain,
+    pub(super) name: Name,
+    pub(super) collider: Collider,
+    pub(super) rigid_body: RigidBody,
+    pub(super) collision_groups: CollisionGroups,
+    pub(super) transform: TransformBundle,
+    pub(super) visibility: VisibilityBundle,
+    pub(super) mesh: Handle<Mesh>,
+    pub(super) material: Handle<StandardMaterial>,
 }
 
 impl TerrainBundle {
-    fn new(
+    pub(super) fn new(
         mesh: Mesh,
         meshes: &mut ResMut<Assets<Mesh>>,
         materials: &mut ResMut<Assets<StandardMaterial>>,
@@ -55,8 +54,13 @@ impl TerrainBundle {
     }
 }
 
-pub fn is_power_of_2(x: u32) -> bool {
-    (x & !(x & (x - 1))) > 0
+pub fn is_power_of_2(x: f32) -> Option<f32> {
+    let x = x as u32;
+    if (x & !(x & (x - 1))) > 0 {
+        Some(x as f32)
+    } else {
+        None
+    }
 }
 
 pub fn spawn_terrain(
@@ -75,7 +79,7 @@ pub fn spawn_terrain(
 
     let sampler = NoiseSampler::single_layer(noise_func);
 
-    assert!(is_power_of_2(size as u32));
+    assert!(is_power_of_2(size).is_some());
     let terrain = build_terrain_from_sampler(&sampler, height_multiplier, size, err_threshold);
     let mesh = terrain.into_mesh(false, size);
 

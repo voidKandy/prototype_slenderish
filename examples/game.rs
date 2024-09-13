@@ -1,17 +1,10 @@
-mod controller;
-mod equip_item;
-mod npc;
-mod player;
-mod rtin;
-mod world;
 use bevy::prelude::*;
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bevy_rapier3d::prelude::*;
-use controller::FpsControllerPlugin;
-use equip_item::EquipItemPlugin;
-// use items::PluginEquipItem;
-use player::PlayerPlugin;
-use world::WorldPlugin;
+use prototype_slenderish::{
+    controller::FpsControllerPlugin, equip_item::EquipItemPlugin, npc::NpcPlugin,
+    player::PlayerPlugin, world::WorldPlugin,
+};
 
 fn main() {
     App::new()
@@ -24,12 +17,10 @@ fn main() {
             WorldPlugin,
             EquipItemPlugin,
             PlayerPlugin,
-            npc::NpcPlugin,
+            NpcPlugin,
             // PluginEquipItem,
             // CameraPlugin,
             WorldInspectorPlugin::new(),
         ))
         .run();
 }
-
-pub const DEFAULT_RENDER_LAYER: usize = 0;
