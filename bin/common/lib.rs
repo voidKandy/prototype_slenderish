@@ -1,4 +1,4 @@
-use bevy::prelude::*;
+use bevy::{color::palettes::css::RED, prelude::*};
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 
 pub fn test_app() -> App {
@@ -14,6 +14,12 @@ fn test_setup(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
+    commands.spawn(PbrBundle {
+        mesh: meshes.add(Cuboid::new(1., 1., 1.)),
+        material: materials.add(Color::from(RED)),
+        transform: Transform::IDENTITY,
+        ..Default::default()
+    });
     // // circular base
     // commands.spawn(PbrBundle {
     //     mesh: meshes.add(Circle::new(4.0)),

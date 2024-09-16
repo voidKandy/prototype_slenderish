@@ -1,31 +1,15 @@
 mod atmosphere;
 mod chunks;
-pub(super) mod heap;
-pub mod wave;
-
 pub mod chunks2;
+pub(super) mod heap;
 pub mod terrain;
-pub use heap::Heapable;
-use std::sync::LazyLock;
-
-use atmosphere::SkyMaterial;
-use bevy::{
-    color::palettes::css::{RED, WHITE, YELLOW},
-    math::NormedVectorSpace,
-    prelude::{Cuboid, *},
-    reflect::{Array, List},
-    render::{
-        mesh::{Indices, PrimitiveTopology, SphereKind, SphereMeshBuilder},
-        render_asset::RenderAssetUsages,
-    },
-};
-use chunks::setup_chunk_map;
-use chunks2::{MarchingTile, MarchingTileBundle, MarchingTileType, TILE_ID_MARCHING_TILES_MAP};
-use terrain::{spawn_terrain, spawn_terrain_entities};
-use wave::{TileCell, TileCellGrid, ALL_TILE_IDS};
-
+pub mod wave;
 use crate::rtin::TerrainMeshData;
-// use tiles::{spawn_terrain, spawn_terrain_entities};
+use atmosphere::SkyMaterial;
+use bevy::{color::palettes::css::YELLOW, math::NormedVectorSpace, prelude::*};
+use chunks::setup_chunk_map;
+pub use heap::Heapable;
+use terrain::{spawn_terrain, spawn_terrain_entities};
 
 pub struct WorldPlugin;
 
@@ -70,24 +54,24 @@ fn spawn_objects(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
-    let tiles = TileCellGrid::new(3).collapse_all_into_vec();
-    let t = TILE_ID_MARCHING_TILES_MAP;
-    let map = LazyLock::force(&t);
+    // let tiles = WaveGrid::new(3).collapse_all_into_vec();
+    // let t = ;
+    // let map = LazyLock::force(&t);
 
-    for (i, tile) in tiles.iter().enumerate() {
-        let marching = map.get(&tile.id().unwrap()).unwrap();
-        let origin = Transform::from_xyz(-100., GROUND_Y, -30.);
-        let (mesh, transform) =
-            MarchingTileBundle::marching_tile_mesh(&origin, marching, tile.x, tile.y);
-
-        let bundle = PbrBundle {
-            mesh: meshes.add(mesh),
-            material: materials.add(Color::srgb(0., 0., 0.5)),
-            transform,
-            ..Default::default()
-        };
-        commands.spawn((Name::new(format!("tile {i}")), bundle));
-    }
+    // for (i, tile) in tiles.iter().enumerate() {
+    //     let marching = map.get(&tile.id).unwrap();
+    //     let origin = Transform::from_xyz(-100., GROUND_Y, -30.);
+    //     let (mesh, transform) =
+    //         MarchingTileBundle::marching_tile_mesh(&origin, marching, tile.x, tile.y);
+    //
+    //     let bundle = PbrBundle {
+    //         mesh: meshes.add(mesh),
+    //         material: materials.add(Color::srgb(0., 0., 0.5)),
+    //         transform,
+    //         ..Default::default()
+    //     };
+    //     commands.spawn((Name::new(format!("tile {i}")), bundle));
+    // }
 
     // commands.spawn((Name::new("wall"), wall));
     // commands.spawn((Name::new("floor"), floor));

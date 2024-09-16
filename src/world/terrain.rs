@@ -54,13 +54,9 @@ impl TerrainBundle {
     }
 }
 
-pub fn is_power_of_2(x: f32) -> Option<f32> {
+pub fn is_power_of_2(x: f32) -> bool {
     let x = x as u32;
-    if (x & !(x & (x - 1))) > 0 {
-        Some(x as f32)
-    } else {
-        None
-    }
+    (x & !(x & (x - 1))) > 0
 }
 
 pub fn spawn_terrain(
@@ -79,7 +75,7 @@ pub fn spawn_terrain(
 
     let sampler = NoiseSampler::single_layer(noise_func);
 
-    assert!(is_power_of_2(size).is_some());
+    assert!(is_power_of_2(size));
     let terrain = build_terrain_from_sampler(&sampler, height_multiplier, size, err_threshold);
     let mesh = terrain.into_mesh(false, size);
 
