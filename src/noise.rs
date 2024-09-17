@@ -1,7 +1,10 @@
+use bevy::{ecs::reflect, prelude::Resource, reflect::Reflect};
+use bevy_inspector_egui::prelude::*;
 use noise::{Fbm, NoiseFn, Perlin};
 
-use super::PlaneSampler;
+use crate::rtin::PlaneSampler;
 
+#[derive(Debug, Resource)]
 pub struct NoiseSampler {
     layers: Vec<Fbm<Perlin>>,
 }

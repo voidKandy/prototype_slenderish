@@ -20,6 +20,10 @@ name = "marching_tiles"
 path = "bin/marching_tiles.rs"
 
 [[bin]]
+name = "world_terrain"
+path = "bin/world_terrain.rs"
+
+[[bin]]
 name = "game"
 path = "bin/game.rs"
 

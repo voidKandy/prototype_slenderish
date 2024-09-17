@@ -3,10 +3,7 @@ use bevy_rapier3d::prelude::*;
 use noise::{Fbm, Perlin};
 use std::sync::LazyLock;
 
-use crate::{
-    rtin::{build_terrain_from_sampler, noise::NoiseSampler},
-    world::GROUND_Y,
-};
+use crate::{noise::NoiseSampler, rtin::build_terrain_from_sampler, world::GROUND_Y};
 
 use super::chunks::{ChunkMap, ChunkType};
 
@@ -18,19 +15,19 @@ pub const WORLD_COLLISION_GROUPS: LazyLock<CollisionGroups> =
 
 #[derive(Bundle)]
 pub struct TerrainBundle {
-    pub(super) terrain: Terrain,
-    pub(super) name: Name,
-    pub(super) collider: Collider,
-    pub(super) rigid_body: RigidBody,
-    pub(super) collision_groups: CollisionGroups,
-    pub(super) transform: TransformBundle,
-    pub(super) visibility: VisibilityBundle,
-    pub(super) mesh: Handle<Mesh>,
-    pub(super) material: Handle<StandardMaterial>,
+    pub terrain: Terrain,
+    pub name: Name,
+    pub collider: Collider,
+    pub rigid_body: RigidBody,
+    pub collision_groups: CollisionGroups,
+    pub transform: TransformBundle,
+    pub visibility: VisibilityBundle,
+    pub mesh: Handle<Mesh>,
+    pub material: Handle<StandardMaterial>,
 }
 
 impl TerrainBundle {
-    pub(super) fn new(
+    pub fn new(
         mesh: Mesh,
         meshes: &mut ResMut<Assets<Mesh>>,
         materials: &mut ResMut<Assets<StandardMaterial>>,

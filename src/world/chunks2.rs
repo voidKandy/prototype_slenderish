@@ -3,10 +3,7 @@ use super::{
     wave::{grid::TileCell, tile::TileID},
     GROUND_Y,
 };
-use crate::{
-    rtin::{build_terrain_from_sampler, noise::NoiseSampler},
-    world::terrain::is_power_of_2,
-};
+use crate::{noise::NoiseSampler, rtin::build_terrain_from_sampler, world::terrain::is_power_of_2};
 use bevy::{
     color::palettes::css::BLACK,
     prelude::{Transform, *},

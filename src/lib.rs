@@ -1,5 +1,6 @@
 pub mod controller;
 pub mod equip_item;
+pub mod noise;
 pub mod npc;
 pub mod player;
 pub mod rtin;

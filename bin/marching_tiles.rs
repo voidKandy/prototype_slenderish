@@ -28,7 +28,7 @@ fn test_grid(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
-    let mut grid = WaveGrid::new(9);
+    let mut grid = WaveGrid::new(3);
     let origin = Transform::IDENTITY;
     let all_cells = grid.collapse_all_into_vec();
     for (i, cell) in all_cells.into_iter().enumerate() {
@@ -43,7 +43,10 @@ fn test_grid(
             // transform: transform.local,
             ..Default::default()
         };
-        commands.spawn((Name::new(format!("cell_{i}")), bundle));
+        commands.spawn((
+            Name::new(format!("{}-{:?}", cell.id.to_string(), (cell.x, cell.z))),
+            bundle,
+        ));
     }
 }
 

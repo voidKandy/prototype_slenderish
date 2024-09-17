@@ -1,5 +1,4 @@
 pub mod binary_node;
-pub mod noise;
 use std::{collections::HashMap, u32};
 
 use binary_node::*;
@@ -285,7 +284,8 @@ mod tests {
     use bevy::scene::ron::error;
     use noise::{Fbm, Perlin};
 
-    use crate::rtin::{noise::NoiseSampler, BinaryNode, PlaneSampler};
+    use crate::noise::NoiseSampler;
+    use crate::rtin::{BinaryNode, PlaneSampler};
 
     use super::{get_errors_vec, select_nodes};
 
