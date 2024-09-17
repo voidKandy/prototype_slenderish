@@ -1,22 +1,16 @@
 pub mod binary_node;
-use std::{collections::HashMap, u32};
-
-use binary_node::*;
-
 use bevy::{
-    app::DynEq,
     log::warn,
     math::Vec3,
-    pbr::{Material, StandardMaterial},
-    prelude::{Mesh, Triangle2d, Triangle3d},
+    prelude::Mesh,
     render::{
         mesh::{Indices, PrimitiveTopology},
         render_asset::RenderAssetUsages,
-        render_resource::BindGroupLayoutEntry,
     },
 };
-use bevy_rapier3d::prelude::shape_views::TriangleView;
 use bevy_tnua::math::Vector2;
+use binary_node::*;
+use std::{collections::HashMap, u32};
 
 #[derive(Debug)]
 pub struct TerrainMeshData {
@@ -281,11 +275,11 @@ fn select_nodes_for_heightmap(
 }
 
 mod tests {
+    #![allow(unused)]
     use bevy::scene::ron::error;
     use noise::{Fbm, Perlin};
 
-    use crate::noise::NoiseSampler;
-    use crate::rtin::{BinaryNode, PlaneSampler};
+    use crate::world::{noise::NoiseSampler, rtin::BinaryNode};
 
     use super::{get_errors_vec, select_nodes};
 

@@ -1,11 +1,19 @@
 use bevy::{color::palettes::css::RED, prelude::*};
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
+use bevy_rapier3d::plugin::{NoUserData, RapierPhysicsPlugin};
+use prototype_slenderish::player::PlayerPlugin;
 
-pub fn test_app() -> App {
+pub fn test_app(player: bool) -> App {
     let mut app = App::new();
     app.add_plugins(DefaultPlugins)
         .add_plugins(WorldInspectorPlugin::new())
         .add_systems(Startup, test_setup);
+    if player {
+        app.add_plugins(RapierPhysicsPlugin::<NoUserData>::default())
+            .add_plugins(PlayerPlugin);
+    } else {
+        app.add_systems(Startup, setup_camera);
+    }
     app
 }
 
@@ -20,21 +28,7 @@ fn test_setup(
         transform: Transform::IDENTITY,
         ..Default::default()
     });
-    // // circular base
-    // commands.spawn(PbrBundle {
-    //     mesh: meshes.add(Circle::new(4.0)),
-    //     material: materials.add(Color::WHITE),
-    //     transform: Transform::from_rotation(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2)),
-    //     ..default()
-    // });
-    // // cube
-    // commands.spawn(PbrBundle {
-    //     mesh: meshes.add(Cuboid::new(1.0, 1.0, 1.0)),
-    //     material: materials.add(Color::srgb_u8(124, 144, 255)),
-    //     transform: Transform::from_xyz(0.0, 0.5, 0.0),
-    //     ..default()
-    // });
-    // light
+
     commands.spawn(PointLightBundle {
         point_light: PointLight {
             shadows_enabled: true,
@@ -43,9 +37,17 @@ fn test_setup(
         transform: Transform::from_xyz(4.0, 8.0, 4.0),
         ..default()
     });
+}
+
+fn setup_camera(mut commands: Commands) {
     // camera
+    let looking = Vec3::new(-20., 0., 16.5);
+    let camera_transform_for_marching_tiles =
+        Transform::from_xyz(-195., 190., 66.5).looking_at(looking, Vec3::Y);
+
     commands.spawn(Camera3dBundle {
-        transform: Transform::from_xyz(-50., 55., -10.0).looking_at(Vec3::ZERO, Vec3::Y),
+        // transform: camera_transform_for_marching_tiles,
+        transform: Transform::from_xyz(-25., 25., -10.0).looking_at(Vec3::ZERO, Vec3::Y),
         ..default()
     });
 }

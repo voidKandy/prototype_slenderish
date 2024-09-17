@@ -1,9 +1,7 @@
-pub mod controller;
-pub mod equip_item;
-pub mod noise;
+pub mod items;
 pub mod npc;
 pub mod player;
-pub mod rtin;
+pub mod state;
 pub mod world;
 
 pub const DEFAULT_RENDER_LAYER: usize = 0;

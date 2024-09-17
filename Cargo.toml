@@ -2,6 +2,7 @@
 name = "prototype_slenderish"
 version = "0.1.0"
 edition = "2021"
+default-run="prototype_slenderish"
 
 [lib]
 path="src/lib.rs"
@@ -24,8 +25,8 @@ name = "world_terrain"
 path = "bin/world_terrain.rs"
 
 [[bin]]
-name = "game"
-path = "bin/game.rs"
+name = "pages"
+path = "bin/pages.rs"
 
 [profile.dev.package.bevy_rapier3d]
 opt-level = 3

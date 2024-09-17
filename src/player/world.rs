@@ -1,6 +1,6 @@
-use super::{PLAYER_COLLISION_GROUPS, PLAYER_HEIGHT, SPAWN_POINT};
-use crate::controller::{
-    CameraConfig, FpsController, FpsControllerInput, LogicalPlayer, RenderPlayer,
+use super::{
+    controller::{CameraConfig, FpsController, FpsControllerInput, LogicalPlayer, RenderPlayer},
+    PLAYER_COLLISION_GROUPS, PLAYER_HEIGHT, SPAWN_POINT,
 };
 use bevy::prelude::*;
 use bevy_rapier3d::prelude::*;

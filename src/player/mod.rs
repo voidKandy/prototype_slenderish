@@ -1,3 +1,4 @@
+mod controller;
 pub mod view_model;
 pub mod world;
 use crate::world::GROUND_Y;
@@ -7,6 +8,7 @@ use bevy::{
     render::render_resource::*,
 };
 use bevy_rapier3d::prelude::*;
+use controller::FpsControllerPlugin;
 use std::sync::LazyLock;
 use view_model::{spawn_player_hud, PlayerViewModelBundle};
 use world::{LogicalPlayerEntityBundle, PlayerInWorldBundle};
@@ -14,7 +16,8 @@ use world::{LogicalPlayerEntityBundle, PlayerInWorldBundle};
 pub struct PlayerPlugin;
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, spawn_player)
+        app.add_plugins(FpsControllerPlugin)
+            .add_systems(Startup, spawn_player)
             .add_plugins(MaterialPlugin::<
                 ExtendedMaterial<StandardMaterial, PlayerViewModelExtension>,
             >::default());

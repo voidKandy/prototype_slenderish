@@ -1,6 +1,8 @@
-use super::tile::{Orientation, TileID, TILE_CONNECTION_MAP};
-use crate::world::{heap::MinHeapMap, terrain::is_power_of_2, Heapable};
-use bevy::{prelude::*, ui::shader_flags::CORNERS, utils::HashSet};
+use super::{
+    heap_map::{Heapable, MinHeapMap},
+    tile::{Orientation, TileID, TILE_CONNECTION_MAP},
+};
+use bevy::{prelude::*, utils::HashSet};
 use rand::{thread_rng, Rng};
 use std::{fmt::Debug, sync::LazyLock};
 
@@ -123,13 +125,20 @@ impl WaveGridCell {
 
     fn force_collapse(&mut self) {
         if let Self::Wave { ref wave, .. } = self {
-            if wave.possible.len() == 0 {
-                warn!("Had to force a tile to be a floor :(");
-                self.collapse_into(TileID::FLOOR);
-                return;
-            }
             let mut rng = thread_rng();
-            let idx = rng.gen_range(0..wave.possible.len());
+            let mut idx = rng.gen_range(0..wave.possible.len());
+            if wave.possible.len() > 1 {
+                if let Some(empty_idx) = wave
+                    .possible
+                    .iter()
+                    .position(|id| id == &TileID::EMPTY.into())
+                {
+                    while idx == empty_idx {
+                        idx = rng.gen_range(0..wave.possible.len());
+                    }
+                }
+            }
+
             let tile = wave.possible.iter().nth(idx).unwrap();
             self.collapse_into(*tile);
         }
@@ -190,11 +199,11 @@ impl TileCell {
         let mut transform = Transform::IDENTITY;
         let translation = mesh_size / 2.0 - 0.5;
         match self.id.type_value() {
-            TileID::FLOOR => {
-                transform.translation.y -= translation;
-                // transform.translation.z += translation + 0.5;
-                // transform.translation.x += translation + 0.5;
-            }
+            // TileID::FLOOR => {
+            // transform.translation.y -= translation;
+            // transform.translation.z += translation + 0.5;
+            // transform.translation.x += translation + 0.5;
+            // }
             _ => {
                 if let Some(rot) = self.id.rotation_identity() {
                     match &rot {
@@ -225,9 +234,9 @@ impl TileCell {
 impl WaveGrid {
     pub fn new(size: u32) -> Self {
         let mut heap_map = MinHeapMap::new();
-        for y in 1..=size {
+        for z in 1..=size {
             for x in 1..=size {
-                let tile = WaveGridCell::new(x, y);
+                let tile = WaveGridCell::new(x, z);
                 heap_map.insert(tile);
             }
         }
@@ -244,6 +253,7 @@ impl WaveGrid {
             if current.collapsed() {
                 break;
             }
+            let tries_allowed = 3;
             match current {
                 WaveGridCell::Collapsed { .. } => break,
                 WaveGridCell::Wave { x, y, .. } => {
@@ -253,7 +263,10 @@ impl WaveGrid {
                     for (orient, coords) in neighbor_coords {
                         if let Ok(_) = self.heap_map.lookup_and_mutate(coords, |state| {
                             if let WaveGridCell::Wave { wave, .. } = state {
-                                wave.update((current.tile_id().unwrap(), orient.invert()));
+                                wave.update(
+                                    (current.tile_id().unwrap(), orient.invert()),
+                                    tries_allowed,
+                                );
                             }
                         }) {
                             // println!("updated val at coords: {coords:?}");
@@ -269,19 +282,23 @@ impl WaveGrid {
     fn neighbor_coords(&self, x: u32, y: u32) -> Vec<(Orientation, (u32, u32))> {
         let mut neighbors = vec![];
         if x > 1 {
+            // neighbors.push((Orientation::Bottom, (x - 1, y)));
             neighbors.push((Orientation::Left, (x - 1, y)));
         }
 
         if x < self.dimension_size as u32 {
             neighbors.push((Orientation::Right, (x + 1, y)));
+            // neighbors.push((Orientation::Top, (x + 1, y)));
         }
 
         if y < self.dimension_size as u32 {
             neighbors.push((Orientation::Top, (x, y + 1)));
+            // neighbors.push((Orientation::Right, (x, y + 1)));
         }
 
         if y > 1 {
             neighbors.push((Orientation::Bottom, (x, y - 1)));
+            // neighbors.push((Orientation::Left, (x, y - 1)));
         }
         neighbors
     }
@@ -293,46 +310,57 @@ impl Wave {
     fn update(
         &mut self,
         (collapsed_neighbor_id, collapsed_neighbor_orient): (impl Into<TileID>, Orientation),
+        // How many times can the update attempt to collapse before moving on?
+        tries_allowed: usize,
     ) {
-        // println!(
-        //     "updating from collapsed neighbor: {} : {collapsed_neighbor_orient:?}",
-        //     tile_id_to_str(&collapsed_neighbor_id)
-        // );
         let orientation_of_self_relative_to_neighbor = collapsed_neighbor_orient.invert();
-        // let i = INVERTED_TILE_CONNECTION_MAP;
-        // let inverted_connection_map = LazyLock::force(&i);
         let t = TILE_CONNECTION_MAP;
         let connection_map = LazyLock::force(&t);
+        let neighbor_id: TileID = collapsed_neighbor_id.into();
 
         let neighbors_connections = connection_map
-            .get(&collapsed_neighbor_id.into())
+            .get(&neighbor_id)
             .expect("this should not fail");
 
         let mut ids_to_remove = vec![];
         let neighbor_connection = neighbors_connections
             .get(&orientation_of_self_relative_to_neighbor)
             .expect("failed to get connection at an orientation");
-        // println!(
-        //     "neighbor can connect: {orientation_of_self_relative_to_neighbor:?} : {neighbor_connection:?}"
-        // );
+        warn!(
+            r#"
+            tileid of neighbor: {}
+            self is {orientation_of_self_relative_to_neighbor:?} of neighbor.
+            self can connect at {collapsed_neighbor_orient:?} at {neighbor_connection:?}"#,
+            neighbor_id.to_string()
+        );
+
+        warn!("iterating through possibilites of self");
 
         for id in &self.possible {
             let possible_self_connects = connection_map.get(id).expect("this should not fail");
             if let Some(connect) = possible_self_connects.get(&collapsed_neighbor_orient) {
-                // println!(
-                //     "got connect: {collapsed_neighbor_orient:?} : {connect:?} for id: {}",
-                //     tile_id_to_str(id)
-                // );
-                if connect != neighbor_connection {
-                    // println!("removing {}", tile_id_to_str(id));
+                warn!(
+                    "got connect: {collapsed_neighbor_orient:?} : {connect:?} for id: {}",
+                    id.to_string()
+                );
+                if !connect.accepts_incoming_connection(neighbor_connection) {
+                    warn!("removing {}", id.to_string());
                     ids_to_remove.push(id.clone());
-                } else {
-                    // println!("keeping {}", tile_id_to_str(id));
                 }
             }
+            if ids_to_remove.len() >= tries_allowed {
+                break;
+            }
         }
+
         for id in ids_to_remove {
-            // println!("removing {}", tile_id_to_str(&id));
+            if self.possible.len() == 1 {
+                warn!(
+                    "could not remove all, will collapse into {}",
+                    id.to_string()
+                );
+                return;
+            }
             self.possible.remove(&id);
         }
     }

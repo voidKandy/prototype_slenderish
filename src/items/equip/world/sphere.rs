@@ -1,17 +1,13 @@
-use std::time::Duration;
-
-use bevy::{
-    color::palettes::css::{RED, WHITE},
-    prelude::*,
+use super::{
+    super::{inventory::Inventory, EquipItem, EquipItemEvent},
+    WorldEquipItem,
 };
+use bevy::{color::palettes::css::RED, prelude::*};
 use bevy_rapier3d::{
-    na::{distance_squared, ComplexField, OPoint, Point3},
-    prelude::{Collider, CollisionEvent, ExternalForce, ExternalImpulse, RigidBody},
+    na::{distance_squared, ComplexField, Point3},
+    prelude::{ExternalImpulse, RigidBody},
 };
-
-use crate::equip_item::{inventory::Inventory, EquipItem, EquipItemEvent, EquipItemMaterial};
-
-use super::WorldEquipItem;
+use std::time::Duration;
 
 #[derive(Debug, Clone, Default)]
 pub enum WorldSphereState {

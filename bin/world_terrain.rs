@@ -4,12 +4,12 @@ mod common;
 use bevy::prelude::*;
 use bevy_inspector_egui::prelude::*;
 use noise::{Fbm, Perlin};
-use prototype_slenderish::{
-    noise::NoiseSampler, rtin::build_terrain_from_sampler, world::terrain::TerrainBundle,
+use prototype_slenderish::world::{
+    noise::NoiseSampler, rtin::build_terrain_from_sampler, terrain::TerrainBundle,
 };
 
 pub fn main() {
-    let mut app = common::test_app();
+    let mut app = common::test_app(false);
     app.add_systems(Startup, setup_nosie)
         // .add_systems(Update, NoiseListener::update)
         .run();

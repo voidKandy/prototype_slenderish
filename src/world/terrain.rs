@@ -1,11 +1,8 @@
+use super::{noise::NoiseSampler, rtin::build_terrain_from_sampler, GROUND_Y};
 use bevy::{color::palettes::css::GREEN, prelude::*};
 use bevy_rapier3d::prelude::*;
 use noise::{Fbm, Perlin};
 use std::sync::LazyLock;
-
-use crate::{noise::NoiseSampler, rtin::build_terrain_from_sampler, world::GROUND_Y};
-
-use super::chunks::{ChunkMap, ChunkType};
 
 #[derive(Component)]
 pub struct Terrain;
@@ -78,17 +75,4 @@ pub fn spawn_terrain(
 
     let bundle = TerrainBundle::new(mesh, &mut meshes, &mut materials);
     commands.spawn(bundle);
-}
-
-pub fn spawn_terrain_entities(
-    mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
-    map: Res<ChunkMap>,
-) {
-    for (_, chunk) in map.as_ref().0.iter() {
-        if let ChunkType::Forest = chunk.typ {
-            chunk.spawn_trees(&mut commands, &mut meshes, &mut materials);
-        }
-    }
 }

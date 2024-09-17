@@ -1,15 +1,14 @@
 mod atmosphere;
-mod chunks;
-pub mod chunks2;
-pub(super) mod heap;
+pub mod chunks;
+pub mod noise;
+pub mod rtin;
 pub mod terrain;
-pub mod wave;
-use crate::rtin::TerrainMeshData;
+pub mod wfc;
 use atmosphere::SkyMaterial;
 use bevy::{color::palettes::css::YELLOW, math::NormedVectorSpace, prelude::*};
-use chunks::setup_chunk_map;
-pub use heap::Heapable;
-use terrain::{spawn_terrain, spawn_terrain_entities};
+use rtin::TerrainMeshData;
+use terrain::spawn_terrain;
+pub use wfc::heap_map::Heapable;
 
 pub struct WorldPlugin;
 
@@ -18,15 +17,7 @@ impl Plugin for WorldPlugin {
         app.add_plugins(MaterialPlugin::<SkyMaterial>::default())
             .add_systems(
                 Startup,
-                (
-                    setup_chunk_map,
-                    atmosphere::setup_atmosphere,
-                    spawn_terrain,
-                    spawn_terrain_entities,
-                    spawn_objects,
-                    spawn_light,
-                )
-                    .chain(),
+                (atmosphere::setup_atmosphere, spawn_terrain, spawn_light).chain(),
             );
     }
 }
@@ -47,36 +38,6 @@ fn spawn_light(mut commands: Commands) {
         ..Default::default()
     };
     commands.spawn((light, Name::new("main light")));
-}
-
-fn spawn_objects(
-    mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
-) {
-    // let tiles = WaveGrid::new(3).collapse_all_into_vec();
-    // let t = ;
-    // let map = LazyLock::force(&t);
-
-    // for (i, tile) in tiles.iter().enumerate() {
-    //     let marching = map.get(&tile.id).unwrap();
-    //     let origin = Transform::from_xyz(-100., GROUND_Y, -30.);
-    //     let (mesh, transform) =
-    //         MarchingTileBundle::marching_tile_mesh(&origin, marching, tile.x, tile.y);
-    //
-    //     let bundle = PbrBundle {
-    //         mesh: meshes.add(mesh),
-    //         material: materials.add(Color::srgb(0., 0., 0.5)),
-    //         transform,
-    //         ..Default::default()
-    //     };
-    //     commands.spawn((Name::new(format!("tile {i}")), bundle));
-    // }
-
-    // commands.spawn((Name::new("wall"), wall));
-    // commands.spawn((Name::new("floor"), floor));
-    // commands.spawn((Name::new("corner"), corner));
-    // commands.spawn((Name::new("stairs"), stairs));
 }
 
 fn project_to_unit_sphere(vertices: &mut Vec<Vec3>) {

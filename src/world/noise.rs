@@ -1,8 +1,6 @@
-use bevy::{ecs::reflect, prelude::Resource, reflect::Reflect};
-use bevy_inspector_egui::prelude::*;
+use super::rtin::PlaneSampler;
+use bevy::prelude::Resource;
 use noise::{Fbm, NoiseFn, Perlin};
-
-use crate::rtin::PlaneSampler;
 
 #[derive(Debug, Resource)]
 pub struct NoiseSampler {

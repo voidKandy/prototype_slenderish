@@ -1,15 +1,15 @@
-use crate::player::{world::PlayerInWorld, PlayerViewModelExtension};
+use crate::player::PlayerViewModelExtension;
 use bevy::{
     pbr::{ExtendedMaterial, StandardMaterial},
     prelude::*,
 };
 use inventory::{player_raycast, update_player_equipment, Inventory};
-use world::{WorldEquipItem, WorldEquipItemBundle};
-pub mod inventory;
-pub mod player;
-pub mod world;
+use world::WorldEquipItemBundle;
+mod inventory;
+mod player;
+mod world;
 
-pub struct EquipItemPlugin;
+pub(super) struct EquipItemPlugin;
 
 impl Plugin for EquipItemPlugin {
     fn build(&self, app: &mut App) {

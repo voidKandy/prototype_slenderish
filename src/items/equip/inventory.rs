@@ -1,6 +1,6 @@
 use std::{sync::LazyLock, time::Duration};
 
-use bevy::{color::palettes::css::WHITE, math::VectorSpace, prelude::*, utils::HashSet};
+use bevy::{color::palettes::css::WHITE, prelude::*, utils::HashSet};
 use bevy_rapier3d::prelude::*;
 
 use crate::player::{
