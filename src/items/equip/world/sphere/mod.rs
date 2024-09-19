@@ -77,11 +77,10 @@ impl WorldEquipItemBundle<WorldEquipSphere, PlayerEquipSphere> for WorldSphereBu
     fn world_equip_handle(&self) -> &WorldEquipHandle {
         &self.handle
     }
-    fn world_to_player(_world: &WorldEquipSphere) -> PlayerEquipSphere {
-        PlayerEquipSphere
-    }
 
     fn drop_into_world(
+        player_item: PlayerEquipSphere,
+        inventory: &mut crate::items::equip::inventory::Inventory,
         commands: &mut Commands,
         meshes: &mut ResMut<Assets<Mesh>>,
         materials: &mut ResMut<Assets<EquipItemMaterial>>,
@@ -98,6 +97,7 @@ impl WorldEquipItemBundle<WorldEquipSphere, PlayerEquipSphere> for WorldSphereBu
             impulse: player_transform.forward() * 2.0,
             torque_impulse: Vec3::ZERO,
         });
+        inventory.cycle_equipment_next();
     }
 
     fn bundle(

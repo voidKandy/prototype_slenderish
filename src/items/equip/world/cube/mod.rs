@@ -1,3 +1,4 @@
+// pub mod portal_material;
 pub mod systems;
 use crate::items::equip::inventory::WorldEquipHandle;
 use crate::items::equip::player::PlayerEquipItem;
@@ -12,8 +13,10 @@ use bevy_rapier3d::prelude::{ExternalImpulse, RigidBody};
 use std::sync::LazyLock;
 
 #[derive(Debug, Clone, Default, Component)]
-pub struct WorldEquipCube {
-    pub cubes: [Option<(u8, Vec3)>; 2],
+pub enum WorldEquipCube {
+    Sender,
+    #[default]
+    Receiver,
 }
 
 #[derive(Debug, Clone, Component, PartialEq, Eq)]
@@ -61,6 +64,7 @@ pub struct WorldCubeBundle {
     restitution: Restitution,
     friction: Friction,
     rigid_body: RigidBody,
+    sleeping: Sleeping,
     transform: TransformBundle,
     visibility: VisibilityBundle,
     ccd: Ccd,
@@ -70,11 +74,10 @@ impl WorldEquipItemBundle<WorldEquipCube, PlayerEquipCube> for WorldCubeBundle {
     fn world_equip_handle(&self) -> &WorldEquipHandle {
         &self.handle
     }
-    fn world_to_player(world: &WorldEquipCube) -> PlayerEquipCube {
-        let n = world.cubes.iter().filter(|v| v.is_none()).count() as u8;
-        PlayerEquipCube(n)
-    }
+
     fn drop_into_world(
+        mut player_item: PlayerEquipCube,
+        inventory: &mut crate::items::equip::inventory::Inventory,
         commands: &mut Commands,
         meshes: &mut ResMut<Assets<Mesh>>,
         materials: &mut ResMut<Assets<EquipItemMaterial>>,
@@ -83,11 +86,23 @@ impl WorldEquipItemBundle<WorldEquipCube, PlayerEquipCube> for WorldCubeBundle {
         let mut transform = player_transform.clone();
         transform.translation += *player_transform.forward();
         let mut bundle = Self::bundle(transform, meshes, materials);
-        bundle.world_cube = WorldEquipCube { cubes: [None; 2] };
+
+        bundle.world_cube = match player_item.amount_spawned() {
+            1 => WorldEquipCube::Receiver,
+            2 => WorldEquipCube::Sender,
+            other => panic!("{other} should be an impossible cube count"),
+        };
+
         commands.spawn(bundle).insert(ExternalImpulse {
             impulse: player_transform.forward() * 2.0,
             torque_impulse: Vec3::ZERO,
         });
+        if player_item.amount_spawned() > &1u8 {
+            player_item.decrease_count();
+            inventory.currently_equipped = Some(player_item.into());
+        } else {
+            inventory.cycle_equipment_next();
+        }
     }
 
     fn bundle(
@@ -118,6 +133,7 @@ impl WorldEquipItemBundle<WorldEquipCube, PlayerEquipCube> for WorldCubeBundle {
         WorldCubeBundle {
             world_cube,
             rigid_body: RigidBody::Dynamic,
+            sleeping: Sleeping::default(),
             collision_groups: LazyLock::force(&ITEM_COLLISION_GROUPS).to_owned(),
             handle: WorldEquipHandle::Cube,
             ccd,

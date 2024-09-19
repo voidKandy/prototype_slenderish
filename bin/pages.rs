@@ -1,6 +1,5 @@
 #[path = "../bin/common/lib.rs"]
 mod common;
-
 use bevy::prelude::*;
 
 pub fn main() {

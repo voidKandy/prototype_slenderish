@@ -81,7 +81,7 @@ impl Inventory {
         }
     }
 
-    fn cycle_equipment_next(&mut self) {
+    pub fn cycle_equipment_next(&mut self) {
         if let Some(next_code) = self
             .other_items
             .iter()
@@ -123,39 +123,32 @@ pub(super) fn update_player_equipment(
     }
 
     if keys.just_pressed(KeyCode::KeyQ) {
-        if let Some(i) = &inventory.currently_equipped {
-            let mut transform = player_trans_q.single().clone();
+        if let Some(item) = inventory.currently_equipped.take() {
+            let transform = player_trans_q.single().clone();
             // transform.translation += transform.forward() * 2.0;
             // inventory.drop_equipment(&mut commands, &mut meshes, &mut materials, &transform);
-            if let Some(mut item) = inventory.currently_equipped.take() {
-                match item {
-                    PlayerEquipItem::Sphere(_) => {
-                        WorldSphereBundle::drop_into_world(
-                            &mut commands,
-                            &mut meshes,
-                            &mut materials,
-                            &transform,
-                        );
-                        inventory.cycle_equipment_next();
-                    }
-                    PlayerEquipItem::Cube(ref mut cube) => {
-                        WorldCubeBundle::drop_into_world(
-                            &mut commands,
-                            &mut meshes,
-                            &mut materials,
-                            &transform,
-                        );
-
-                        if cube.amount_spawned() > &1u8 {
-                            cube.decrease_count();
-                            inventory.currently_equipped = Some(item);
-                        } else {
-                            inventory.cycle_equipment_next();
-                        }
-                    }
+            match item {
+                PlayerEquipItem::Sphere(sphere) => {
+                    WorldSphereBundle::drop_into_world(
+                        sphere,
+                        &mut inventory,
+                        &mut commands,
+                        &mut meshes,
+                        &mut materials,
+                        &transform,
+                    );
+                }
+                PlayerEquipItem::Cube(cube) => {
+                    WorldCubeBundle::drop_into_world(
+                        cube,
+                        &mut inventory,
+                        &mut commands,
+                        &mut meshes,
+                        &mut materials,
+                        &transform,
+                    );
                 }
             }
-            // ev_equip_item.send(EquipItemEvent::Dropped(i.into()));
         }
     }
 

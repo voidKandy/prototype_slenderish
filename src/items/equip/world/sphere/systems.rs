@@ -92,8 +92,7 @@ pub fn sphere_dropped(
                 }
 
                 commands.entity(sphere_entity).despawn();
-                // let player_equip: PlayerEquipSphere = WorldSphereBundle::world_to_player(&sphere);
-                // inventory.add_to_equipment(player_equip);
+                inventory.add_to_equipment(PlayerEquipSphere::default());
             }
         }
     }

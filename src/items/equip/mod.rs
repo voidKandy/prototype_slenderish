@@ -10,7 +10,7 @@ use bevy_rapier3d::prelude::{CollisionGroups, Group};
 use inventory::{player_raycast, update_player_equipment, Inventory, WorldEquipHandle};
 use player::PlayerEquipItem;
 use world::{
-    cube::WorldCubeBundle,
+    cube::{systems::update_cubes, WorldCubeBundle},
     sphere::{
         systems::{sphere_dropped, tick_effect},
         WorldSphereBundle,
@@ -34,6 +34,7 @@ impl Plugin for EquipItemPlugin {
                     player_raycast,
                     // handle_equip_item_event,
                     sphere_dropped,
+                    update_cubes,
                     tick_effect,
                 ),
             );
@@ -54,8 +55,9 @@ where
     P: Debug + Component + Clone + Into<PlayerEquipItem>,
 {
     fn world_equip_handle(&self) -> &WorldEquipHandle;
-    fn world_to_player(world: &W) -> P;
     fn drop_into_world(
+        player_item: P,
+        inventory: &mut Inventory,
         commands: &mut Commands,
         meshes: &mut ResMut<Assets<Mesh>>,
         materials: &mut ResMut<Assets<EquipItemMaterial>>,
