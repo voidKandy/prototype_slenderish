@@ -1,4 +1,7 @@
-use super::{EquipItem, EquipItemMaterial};
+use super::{
+    world::{cube::PlayerEquipCube, sphere::PlayerEquipSphere},
+    EquipItemMaterial,
+};
 use crate::player::view_model::VIEW_MODEL_RENDER_LAYER;
 use bevy::{
     color::palettes::css::PURPLE, pbr::ExtendedMaterial, prelude::*, render::view::RenderLayers,
@@ -11,28 +14,10 @@ pub const EQUIP_TRANSFORM: LazyLock<Transform> = LazyLock::new(|| {
     equip_transform
 });
 
-#[derive(Component, Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Component, PartialEq, Eq, Debug, Clone)]
 pub enum PlayerEquipItem {
-    Sphere,
-    Cube,
-}
-
-impl From<EquipItem> for PlayerEquipItem {
-    fn from(value: EquipItem) -> Self {
-        match value {
-            EquipItem::Cube => Self::Cube,
-            EquipItem::Sphere => Self::Sphere,
-        }
-    }
-}
-
-impl Into<EquipItem> for PlayerEquipItem {
-    fn into(self) -> EquipItem {
-        match self {
-            Self::Cube => EquipItem::Cube,
-            Self::Sphere => EquipItem::Sphere,
-        }
-    }
+    Sphere(PlayerEquipSphere),
+    Cube(PlayerEquipCube),
 }
 
 #[derive(Bundle)]
@@ -56,8 +41,8 @@ pub fn single_text_sections(str: &str) -> Vec<TextSection> {
 }
 
 impl PlayerEquipItemBundle {
-    pub fn from_equip_item(
-        item: EquipItem,
+    pub fn from_player_equip_item(
+        item: PlayerEquipItem,
         meshes: &mut ResMut<Assets<Mesh>>,
         materials: &mut ResMut<Assets<EquipItemMaterial>>,
     ) -> Self {
@@ -65,8 +50,8 @@ impl PlayerEquipItemBundle {
         let transform = LazyLock::force(&t);
         let size = 0.1;
 
-        let (mesh, material) = match item {
-            EquipItem::Sphere => {
+        let (mesh, material) = match &item {
+            PlayerEquipItem::Sphere(sphere) => {
                 let mesh: Mesh = Sphere::new(size).into();
                 let material = ExtendedMaterial {
                     base: StandardMaterial {
@@ -78,8 +63,18 @@ impl PlayerEquipItemBundle {
                 };
                 (mesh, material)
             }
-            EquipItem::Cube => {
-                let mesh: Mesh = Cuboid::new(size, size, size).into();
+            PlayerEquipItem::Cube(ref cube) => {
+                let mut cube0: Mesh = Cuboid::new(size, size, size).into();
+                if cube.amount_spawned() > &1u8 {
+                    let mut cube1: Mesh = Cuboid::new(size, size, size).into();
+                    let rotation_angle = 5.0_f32.to_radians();
+                    let rotation = Quat::from_rotation_y(rotation_angle);
+                    cube1.rotate_by(rotation);
+                    let translation = Vec3::new(size * 1.5, 0., 0.);
+                    cube1.translate_by(translation);
+                    cube0.merge(&cube1);
+                }
+
                 let material = ExtendedMaterial {
                     base: StandardMaterial {
                         base_color: PURPLE.into(),
@@ -88,7 +83,7 @@ impl PlayerEquipItemBundle {
                     },
                     extension: crate::player::PlayerViewModelExtension { quantize_steps: 3 },
                 };
-                (mesh, material)
+                (cube0, material)
             }
         };
 

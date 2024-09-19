@@ -1,86 +1,102 @@
-use std::{sync::LazyLock, time::Duration};
-
-use bevy::{color::palettes::css::WHITE, prelude::*, utils::HashSet};
-use bevy_rapier3d::prelude::*;
-
+use super::{
+    player::{single_text_sections, PlayerEquipItem, PlayerEquipItemBundle},
+    world::{
+        cube::{PlayerEquipCube, WorldCubeBundle},
+        sphere::{PlayerEquipSphere, WorldSphereBundle},
+    },
+    EquipItemMaterial, WorldEquipItemBundle, ITEM_COLLISION_GROUPS,
+};
 use crate::player::{
     view_model::{LookingAtText, PlayerViewModel},
     world::PlayerInWorld,
 };
-
-use super::{
-    player::{single_text_sections, PlayerEquipItem, PlayerEquipItemBundle},
-    world::{
-        sphere::{GrenadeTimer, WorldSphereState, MS_TO_EXPLODE},
-        WorldEquipItem, WorldEquipItemBundle, ITEM_COLLISION_GROUPS,
-    },
-    EquipItem, EquipItemEvent, EquipItemMaterial,
+use bevy::{
+    prelude::*,
+    utils::{hashbrown::HashMap, HashSet},
 };
+use bevy_rapier3d::prelude::*;
+use core::panic;
+use std::sync::LazyLock;
+
+#[derive(Component, Clone, Copy, Debug)]
+pub enum WorldEquipHandle {
+    Cube,
+    Sphere,
+}
+
+impl Into<PlayerEquipItem> for WorldEquipHandle {
+    fn into(self) -> PlayerEquipItem {
+        match self {
+            Self::Cube => PlayerEquipItem::Cube(PlayerEquipCube::default()),
+            Self::Sphere => PlayerEquipItem::Sphere(PlayerEquipSphere::default()),
+        }
+    }
+}
 
 #[derive(Component, Default)]
 pub struct Inventory {
     pub currently_equipped: Option<PlayerEquipItem>,
-    pub other_items: HashSet<PlayerEquipItem>,
+    pub other_items: HashMap<u8, PlayerEquipItem>,
 }
 
 impl Inventory {
+    const CUBE: u8 = 0;
+    const SPHERE: u8 = 1;
+
+    fn item_code(item: &PlayerEquipItem) -> u8 {
+        match item {
+            PlayerEquipItem::Cube(_) => Self::CUBE,
+            PlayerEquipItem::Sphere(_) => Self::SPHERE,
+        }
+    }
+
     /// Adds an item to equipment, equipping it if something already isnt
     pub fn add_to_equipment(&mut self, item: impl Into<PlayerEquipItem>) {
+        let item: PlayerEquipItem = item.into();
+        warn!(
+            "adding {item:?} to equipment\ncurrently: {:?}",
+            self.currently_equipped
+        );
         match self.currently_equipped {
-            Some(_) => {
-                let _ = self.other_items.insert(item.into());
+            Some(ref mut equipped) => {
+                if let (PlayerEquipItem::Cube(_), PlayerEquipItem::Cube(ref mut cube)) =
+                    (&item, equipped)
+                {
+                    if cube.amount_spawned() < &2u8 {
+                        warn!("increasing cube count");
+                        cube.increase_count();
+                    }
+                } else if let Some(item) = self.other_items.get_mut(&Self::item_code(&item)) {
+                    if let PlayerEquipItem::Cube(cube) = item {
+                        if cube.amount_spawned() < &2u8 {
+                            warn!("increasing cube count");
+                            cube.increase_count();
+                        }
+                    }
+                } else {
+                    let _ = self.other_items.insert(Self::item_code(&item), item);
+                }
             }
-            None => self.currently_equipped = Some(item.into()),
+            None => self.currently_equipped = Some(item),
         }
     }
 
     fn cycle_equipment_next(&mut self) {
-        if let Some(next) = self.other_items.iter().next() {
+        if let Some(next_code) = self
+            .other_items
+            .iter()
+            .next()
+            .and_then(|(c, _)| Some(c.to_owned()))
+        {
             let taken = self
                 .other_items
-                .take(&next.clone())
+                .remove(&next_code)
                 .expect("Should be valid get");
 
             if let Some(item) = self.currently_equipped.take() {
-                let _ = self.other_items.insert(item);
+                let _ = self.other_items.insert(Self::item_code(&item), item);
             }
             self.currently_equipped = Some(taken);
-        }
-    }
-
-    pub fn drop_equipment(
-        &mut self,
-        commands: &mut Commands,
-        meshes: &mut ResMut<Assets<Mesh>>,
-        materials: &mut ResMut<Assets<EquipItemMaterial>>,
-        player_transform: &Transform,
-    ) {
-        if let Some(item) = self.currently_equipped.take() {
-            let item = Into::<EquipItem>::into(item).into();
-            let mut transform = player_transform.clone();
-            transform.translation += *player_transform.forward();
-            let mut bundle =
-                WorldEquipItemBundle::from_equip_item(item, transform, meshes, materials);
-
-            // Maybhaps this would be better implemented as a custom initialization function for an
-            // engaged sphere...
-            if let EquipItem::Sphere = item {
-                if let Some(mat) = materials.get_mut(&bundle.material) {
-                    mat.base.emissive = WHITE.into();
-                }
-
-                bundle.item = WorldEquipItem::Sphere(WorldSphereState::Engaged {
-                    timer: GrenadeTimer::from(Timer::new(
-                        Duration::from_millis(MS_TO_EXPLODE),
-                        TimerMode::Once,
-                    )),
-                });
-            }
-            commands.spawn(bundle).insert(ExternalImpulse {
-                impulse: player_transform.forward() * 2.0,
-                torque_impulse: Vec3::ZERO,
-            });
-            self.cycle_equipment_next();
         }
     }
 }
@@ -94,7 +110,7 @@ pub(super) fn update_player_equipment(
     mut inventory_q: Query<&mut Inventory, With<Inventory>>,
     mut player_vm_q: Query<Entity, With<PlayerViewModel>>,
 
-    mut ev_equip_item: EventWriter<EquipItemEvent>,
+    // mut ev_equip_item: EventWriter<EquipItemEvent>,
     player_trans_q: Query<&Transform, With<PlayerInWorld>>,
     equip_item_q: Query<(Entity, &PlayerEquipItem), With<PlayerEquipItem>>,
     keys: Res<ButtonInput<KeyCode>>,
@@ -105,25 +121,60 @@ pub(super) fn update_player_equipment(
     if keys.just_pressed(KeyCode::KeyN) {
         inventory.cycle_equipment_next();
     }
+
     if keys.just_pressed(KeyCode::KeyQ) {
-        if let Some(i) = inventory.currently_equipped {
+        if let Some(i) = &inventory.currently_equipped {
             let mut transform = player_trans_q.single().clone();
             // transform.translation += transform.forward() * 2.0;
-            inventory.drop_equipment(&mut commands, &mut meshes, &mut materials, &transform);
-            ev_equip_item.send(EquipItemEvent::Dropped(i.into()));
+            // inventory.drop_equipment(&mut commands, &mut meshes, &mut materials, &transform);
+            if let Some(mut item) = inventory.currently_equipped.take() {
+                match item {
+                    PlayerEquipItem::Sphere(_) => {
+                        WorldSphereBundle::drop_into_world(
+                            &mut commands,
+                            &mut meshes,
+                            &mut materials,
+                            &transform,
+                        );
+                        inventory.cycle_equipment_next();
+                    }
+                    PlayerEquipItem::Cube(ref mut cube) => {
+                        WorldCubeBundle::drop_into_world(
+                            &mut commands,
+                            &mut meshes,
+                            &mut materials,
+                            &transform,
+                        );
+
+                        if cube.amount_spawned() > &1u8 {
+                            cube.decrease_count();
+                            inventory.currently_equipped = Some(item);
+                        } else {
+                            inventory.cycle_equipment_next();
+                        }
+                    }
+                }
+            }
+            // ev_equip_item.send(EquipItemEvent::Dropped(i.into()));
         }
     }
 
-    match inventory.currently_equipped {
+    match &inventory.currently_equipped {
         Some(item) => {
             for (equip_item_entity, equip_item) in &equip_item_q {
-                if *equip_item != item {
+                if *equip_item != *item {
                     commands.entity(equip_item_entity).despawn();
+                } else {
+                    // if let PlayerEquipItem::Cube(ref mut cube) = item {
+                    //     cube.increase_count();
+                    // }
                 }
             }
-
-            let player_item =
-                PlayerEquipItemBundle::from_equip_item(item.into(), &mut meshes, &mut materials);
+            let player_item = PlayerEquipItemBundle::from_player_equip_item(
+                item.to_owned(),
+                &mut meshes,
+                &mut materials,
+            );
             commands.entity(player_vm_entity).with_children(|p| {
                 p.spawn(player_item);
             });
@@ -138,10 +189,10 @@ pub(super) fn update_player_equipment(
 
 pub(super) fn player_raycast(
     mut commands: Commands,
-    mut ev_equip_item: EventWriter<EquipItemEvent>,
+    // mut ev_equip_item: EventWriter<EquipItemEvent>,
     player_trans_q: Query<&Transform, With<PlayerInWorld>>,
     mut inventory_q: Query<&mut Inventory, With<Inventory>>,
-    item_q: Query<(Entity, &WorldEquipItem), With<WorldEquipItem>>,
+    item_q: Query<(Entity, &WorldEquipHandle), With<WorldEquipHandle>>,
     mut text_q: Query<&mut Text, With<LookingAtText>>,
     keys: Res<ButtonInput<KeyCode>>,
     time: Res<Time>,
@@ -165,17 +216,17 @@ pub(super) fn player_raycast(
     if let Some((entity, _toi)) =
         rapier_context.cast_ray(position, *direction, max_toi, false, filter)
     {
-        for (item_entity, eq_item) in &item_q {
+        for (item_entity, eq_item_handle) in item_q.into_iter() {
             if item_entity == entity {
                 last_hit = time.elapsed_seconds_f64();
 
-                text.sections = single_text_sections(&format!("item: {eq_item:?}"));
+                text.sections = single_text_sections(&format!("item: {eq_item_handle:?}",));
 
                 if keys.just_pressed(KeyCode::KeyZ) {
                     commands.entity(entity).despawn();
-                    let item = Into::<EquipItem>::into(eq_item.to_owned());
-                    inventory.add_to_equipment(item);
-                    ev_equip_item.send(EquipItemEvent::PickedUp(item));
+                    // let item = Into::<EquipItem>::into(eq_item.to_owned());
+                    inventory.add_to_equipment(*eq_item_handle);
+                    // ev_equip_item.send(EquipItemEvent::PickedUp(item));
                 }
             }
         }
